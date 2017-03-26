@@ -1,0 +1,20 @@
+--- bin/ebuild-helpers/prepstrip.orig	2015-03-14 22:55:40.426492534 +0300
++++ bin/ebuild-helpers/prepstrip	2015-03-14 22:58:13.574577920 +0300
+@@ -270,6 +270,17 @@
+ 	__multijob_post_fork
+ fi
+ 
++# Get current userland in runtime, needed for cross-compilation
++# See bug #543292
++case $(uname -s) in
++*BSD|DragonFly)
++	USERLAND="BSD"
++	;;
++*)
++	USERLAND="GNU"
++	;;
++esac
++
+ # Since strip creates a new inode, we need to know the initial set of
+ # inodes in advance, so that we can avoid interference due to trying
+ # to strip the same (hardlinked) file multiple times in parallel.

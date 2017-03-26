@@ -1,0 +1,35 @@
+--- configure.ac.bak	2015-03-19 11:56:07.834648555 +0300
++++ configure.ac	2015-03-19 12:02:09.529126752 +0300
+@@ -318,16 +318,21 @@
+ 	case "$host" in
+ 	*-*-linux*)
+ 		ac_sys_system=Linux
++		ac_sys_release=
+ 		;;
+ 	*-*-cygwin*)
+ 		ac_sys_system=Cygwin
++		ac_sys_release=
++		;;
++	*-*-freebsd*)
++		ac_sys_system=FreeBSD
++		ac_sys_release=`echo $host | sed 's:.*freebsd::'`
+ 		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+ 		AC_MSG_ERROR([cross build not supported for $host])
+ 	esac
+-	ac_sys_release=
+     else
+ 	ac_sys_system=`uname -s`
+ 	if test "$ac_sys_system" = "AIX" \
+@@ -368,6 +373,9 @@
+ 	*-*-cygwin*)
+ 		_host_cpu=
+ 		;;
++	*-*-freebsd*)
++		_host_cpu=$host_cpu
++		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
