@@ -1,5 +1,5 @@
---- bin/ebuild-helpers/prepstrip.orig	2015-03-14 22:55:40.426492534 +0300
-+++ bin/ebuild-helpers/prepstrip	2015-03-14 22:58:13.574577920 +0300
+--- portage/bin/ebuild-helpers/prepstrip.orig	2015-03-14 22:55:40.426492534 +0300
++++ portage/bin/ebuild-helpers/prepstrip	2015-03-14 22:58:13.574577920 +0300
 @@ -270,6 +270,17 @@
  	__multijob_post_fork
  fi
