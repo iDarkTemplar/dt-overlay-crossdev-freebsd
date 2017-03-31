@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<repositories encoding="UTF-8" version="1.1">
+  <repo priority="50" quality="experimental" status="unofficial">
+    <name>dt-overlay-crossdev-freebsd</name>
+    <description>Overlay for Gentoo with patches fixing some of issues arising during Gentoo/FreeBSD crosscompilation</description>
+    <homepage>https://github.com/iDarkTemplar/dt-overlay-crossdev-freebsd</homepage>
+    <owner>
+      <email>darktemplar@dark-templar-archives.net</email>
+      <name>i.Dark_Templar</name>
+    </owner>
+    <source branch="master" type="git">https://github.com/iDarkTemplar/dt-overlay-crossdev-freebsd.git</source>
+    <feed>https://github.com/iDarkTemplar/dt-overlay-crossdev-freebsd/commits/master.atom</feed>
+  </repo>
+</repositories>
