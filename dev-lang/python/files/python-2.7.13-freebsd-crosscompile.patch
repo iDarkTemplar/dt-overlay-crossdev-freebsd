@@ -1,0 +1,35 @@
+--- Python-2.7.13/configure.ac.back	2017-04-04 16:13:33.000000000 +0300
++++ Python-2.7.13/configure.ac	2017-04-04 16:15:39.000000000 +0300
+@@ -322,16 +322,21 @@
+ 	case "$host" in
+ 	*-*-linux*)
+ 		ac_sys_system=Linux
++		ac_sys_release=
+ 		;;
+ 	*-*-cygwin*)
+ 		ac_sys_system=Cygwin
++		ac_sys_release=
++		;;
++	*-*-freebsd*)
++		ac_sys_system=FreeBSD
++		ac_sys_release=$(echo $host | sed 's:.*freebsd::')
+ 		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+ 		AC_MSG_ERROR([cross build not supported for $host])
+ 	esac
+-	ac_sys_release=
+     else
+ 	ac_sys_system=`uname -s`
+ 	if test "$ac_sys_system" = "AIX" \
+@@ -372,6 +377,9 @@
+ 	*-*-cygwin*)
+ 		_host_cpu=
+ 		;;
++	*-*-freebsd*)
++		_host_cpu=$host_cpu
++		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"

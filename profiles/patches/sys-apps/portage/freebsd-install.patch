@@ -1,0 +1,25 @@
+--- portage-2.3.5/bin/misc-functions.sh.back	2017-04-05 22:24:39.667790000 +0000
++++ portage-2.3.5/bin/misc-functions.sh	2017-04-05 22:25:30.745209000 +0000
+@@ -232,13 +232,15 @@
+ 		# Save NEEDED information after removing self-contained providers
+ 		rm -f "$PORTAGE_BUILDDIR"/build-info/NEEDED{,.ELF.2}
+ 		scanelf -qyRF '%a;%p;%S;%r;%n' "${D}" | { while IFS= read -r l; do
+-			arch=${l%%;*}; l=${l#*;}
+-			obj="/${l%%;*}"; l=${l#*;}
+-			soname=${l%%;*}; l=${l#*;}
+-			rpath=${l%%;*}; l=${l#*;}; [ "${rpath}" = "  -  " ] && rpath=""
+-			needed=${l%%;*}; l=${l#*;}
+-			echo "${obj} ${needed}"	>> "${PORTAGE_BUILDDIR}"/build-info/NEEDED
+-			echo "${arch:3};${obj};${soname};${rpath};${needed}" >> "${PORTAGE_BUILDDIR}"/build-info/NEEDED.ELF.2
++			if [ -n "${l}" ] ; then
++				arch=${l%%;*}; l=${l#*;}
++				obj="/${l%%;*}"; l=${l#*;}
++				soname=${l%%;*}; l=${l#*;}
++				rpath=${l%%;*}; l=${l#*;}; [ "${rpath}" = "  -  " ] && rpath=""
++				needed=${l%%;*}; l=${l#*;}
++				echo "${obj} ${needed}"	>> "${PORTAGE_BUILDDIR}"/build-info/NEEDED
++				echo "${arch:3};${obj};${soname};${rpath};${needed}" >> "${PORTAGE_BUILDDIR}"/build-info/NEEDED.ELF.2
++			fi
+ 		done }
+ 
+ 		[ -n "${QA_SONAME_NO_SYMLINK}" ] && \

@@ -1,0 +1,11 @@
+--- work/sbin/ldconfig/elfhints.c.back	2017-04-08 15:37:42.659285000 +0000
++++ work/sbin/ldconfig/elfhints.c	2017-04-08 15:38:05.114964000 +0000
+@@ -246,8 +246,6 @@
+ 			add_dir(hintsfile, argv[i], 0);
+ 	}
+ 	/* Always add our system dirs */
+-	add_dir (hintsfile, "/lib", 1);
+-	add_dir (hintsfile, "/usr/lib", 1);
+ 	write_elf_hints(hintsfile);
+ }
+ 

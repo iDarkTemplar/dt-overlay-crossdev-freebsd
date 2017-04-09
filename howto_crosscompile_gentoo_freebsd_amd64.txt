@@ -1,0 +1,235 @@
+Following are instructions (maybe incomplete) on how I crosscompiled Gentoo/FreeBSD AMD64
+from Gentoo/Linux host using packages and patches from this overlay.
+Using some temporary Gentoo/Linux host for crosscompiling is recommended since crossdev
+leaves a lot of garbage in a system.
+
+FreeBSD target is FreeBSD 10.3, currently in the portage tree at the moment of creation of this note.
+If patches to GCC and Portage are properly applied, system would become multilib.
+To achieve this I've patched portage, toolchain eclass and gcc-4.9.4.
+After building patched gcc it's possible to build multilib clang and use it as a system compiler for almost everything:
+I couldn't use clang to compile GCC.
+
+I've chosen to name CHOST as "x86_64-gentoo-freebsd10.3", but 'gentoo' can be replaced with any other word, but it'd have to be changed everywhere accordingly.
+For, example, "x86_64-pc-freebsd10.3" can be used instead.
+
+Basically, process contains 3 big steps: building basic binary packages on Gentoo/Linux host,
+making basic Gentoo/FreeBSD system using FreeBSD livecd/liveusb/etc, finishing up Gentoo/FreeBSD system.
+Make sure that patches from profiles/patches are always applied on all of 3 steps.
+Without some of patches build would just fail, other patches add useful features.
+Portage has to be rebuilt with those patches before step 1.
+
+
+
+
+I. Building basic binary packages on Gentoo/Linux host
+
+# create crossdev local overlay, crossdev will put some needed stuff there. Instructions are omitted
+# emerge prerequesites for Gentoo/FreeBSD crosscompilation:
+emerge -1av virtual/pmake =sys-freebsd/freebsd-mk-defs-10.3 sys-apps/mtree
+emerge -1av =crossdev-20160602-r1
+USE="multilib cxx" ABI_X86="64 32" crossdev -s4 --target x86_64-gentoo-freebsd10.3 --with-headers --gcc 4.4.7 --libc 10.3-r3 --abis "amd64 x86" --env 'ABI_X86="64 32"' -v
+rm /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.profile
+ln -sv /usr/portage/profiles/default/bsd/fbsd/amd64/10.3 /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.profile
+mkdir /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile
+echo "-abi_x86_32" >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/use.force
+echo 'ABI_X86="64"' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.conf
+echo 'BMAKE="bmake -m /usr/share/mk/freebsd"' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.conf
+echo 'USE="${USE} -cxx -nls"' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.conf
+echo 'ACCEPT_KEYWORDS="amd64 ~amd64 amd64-fbsd ~amd64-fbsd"' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.conf
+echo 'sys-freebsd/freebsd-share-10.3-r9999' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/package.provided
+echo 'net-libs/libpcap-9999' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/package.provided
+echo 'net-misc/rsync-9999' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/package.provided
+echo 'virtual/man-9999' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/package.provided
+echo 'sys-devel/gettext-9999' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/profile/package.provided
+echo '>=sys-devel/gcc-4.5' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/package.mask
+echo 'PYTHON_TARGETS="python2_7"' >> /usr/x86_64-gentoo-freebsd10.3/etc/portage/make.conf
+
+# Also add this overlayto the /usr/x86_64-gentoo-freebsd10.3/etc/portage configuration, make sure that symlinks to net-misc/openssh, sys-process/cronbase and sys-process/vixie-cron
+# are valid and point to corresponding directories in gentoo repository (which usually is /usr/portage)
+# It's needed to use patched user.eclass
+
+# This step probably may be skipped. Keeping it here since I did it this way
+USE="build -ssl minimal" emerge-x86_64-gentoo-freebsd10.3 -1v sys-freebsd/freebsd-lib /* until fails */
+
+# CFLAGS -fPIC -DPIC have to be added manually for dev-util/dialog since it's built with minimal use-flag,
+# thus disabling usage of libtool which doesn't allow to crosscompile this package otherwise. These CFLAGS are required to link to it later:
+CFLAGS="${CFLAGS} -fPIC -DPIC" USE="minimal static-libs" emerge-x86_64-gentoo-freebsd10.3 -1v dev-util/dialog
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v --nodeps sys-freebsd/freebsd-lib
+
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v sys-process/vixie-cron
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v sys-freebsd/freebsd-libexec
+USE="build -ssl minimal pam -threads" emerge-x86_64-gentoo-freebsd10.3 -1v dev-libs/openssl
+USE="build -ssl minimal pam expat -iconv" emerge-x86_64-gentoo-freebsd10.3 -1v app-arch/libarchive
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v net-misc/openssh
+USE="build -ssl -minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v app-arch/tar
+USE="build -ssl -minimal pam -native-extensions" emerge-x86_64-gentoo-freebsd10.3 -1v sys-apps/portage
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1vn @system
+
+# emerge some console text editor, it'd definitely be needed at steps 2 and 3. I chose nano
+USE="build -ssl minimal pam" emerge-x86_64-gentoo-freebsd10.3 -1v nano
+
+# After all these steps basic system is ready, all packages are at /usr/x86_64-gentoo-freebsd10.3/packages.
+# Copy them somewhere or make sure you'd be able to access them some other way on next step. I just used ssh to access VM I was using to perform step 1.
+# Same goes for directory structure /usr/x86_64-gentoo-freebsd10.3/var/db/pkg
+
+
+
+
+II. Making basic Gentoo/FreeBSD system using FreeBSD livecd/liveusb/etc
+
+# Before starting this step, there is one important issue to note.
+# Crosscompiled bash works, but not without issues. There are two ways to work around issues.
+# 1) Easier way: download static bash package from freebsd and before chrooting to the system unpack it somewhere to /usr/local
+#   and create symlink to the unpacked bash to at /bin/bash
+# 2) Hack portage and eclasses after chrooting.
+#   2.1) hack portage unpack checks
+#   2.2) hack /usr/portage/eclass/multibuild.eclass function multibuild_merge_root
+#   Look for PIPESTATUS variables and just make sure checks that use them always pass.
+#   First thing to do would be re-emerging bash and reverting hacks
+
+# Boot freebsd install disk
+# Partition the disc as you need
+# mount your future root partition to /mnt, mount other subpartitions as necessary. After that:
+mkdir /mnt/dev
+mount -t devfs none /mnt/dev
+# next one is needed for bash
+mount -t fdescfs fdescfs /mnt/dev/fd
+cd /mnt
+# copy all packages from original /usr/x86_64-gentoo-freebsd10.3/packages; unpack them with 'tar xjvpf $filename'
+# copy /usr/x86_64-gentoo-freebsd10.3/var/db/pkg
+# Also download portage tree
+mkdir -pv lib usr/lib usr/local/lib lib32 usr/lib32 usr/local/lib32
+
+# FreeBSD uses lib for native stuff, i.e. 64bit in this case, it doesn't use lib64. Move libraries to match that, and make temporary symlinks.
+# Portage will remove symlinks later as necessary, or you can do it at the end of step 2
+mv lib64/* lib/
+mv usr/lib64/* usr/lib/
+mv usr/lib64/python2.7/* usr/lib/python2.7/
+rmd -rf lib64 usr/lib64
+ln -sv lib lib64
+ln -sv lib usr/lib64
+
+# Basic users/groups info is necessary. I don't know how to generate it, I just took it from live media I used to boot
+cp /etc/master.passwd* /mnt/etc/
+cp /etc/passwd* /mnt/etc/
+cp /etc/login.conf* /mnt/etc/
+cp /etc/group* /mnt/etc/
+cp /etc/pw.conf* /mnt/etc/
+cp /etc/pwd.db /mnt/etc/
+cp /etc/spwd.db /mnt/etc/
+
+chroot /mnt /bin/bash
+
+mkdir -pv /usr/local/{bin,sbin,lib}
+
+# Put symlinks to some not yet existing binaries
+ln -sv /bin/bash /bin/sh
+ln -sv /usr/bin/gawk /usr/local/bin/awk
+ln -sv /bin/bash /bin/sh
+ln -sv /usr/bin/gcc-4.4.7 /usr/local/bin/gcc
+ln -sv /usr/bin/gm4 /usr/local/bin/m4
+
+gcc-config 1
+binutils-config 1
+
+#set minimal make.conf:
+CHOST="x86_64-gentoo-freebsd10.3"
+ARCH="amd64"
+
+ACCEPT_KEYWORDS="amd64 ~amd64 amd64-fbsd ~amd64-fbsd"
+
+CFLAGS="-O2 -pipe -fomit-frame-pointer"
+CXXFLAGS="${CFLAGS}"
+LDFLAGS="${LDFLAGS}"
+
+PORTDIR="/usr/portage"
+
+# TEMPORARY
+PYTHON_TARGETS="python2_7"
+USE="-cxx"
+FEATURES="-userpriv" # needed for python[threads] to successfully build, I didn't find how to fix this yet
+#Basic config end
+
+#add portage user and group with ids 250 like in Gentoo
+
+mkdir /usr/portage/packages
+# Temporary make a symlink to make; Not sure if it's still necessary.
+ln -sv /usr/bin/gmake /bin/make
+
+#rebuild bash:
+USE="-nls" emerge -1av bash
+exec bash
+# Now's the time to remove hack at /usr/portage/eclass/multibuild.eclass if it was placed
+USE="-nls" emerge -1av bzip2 tar
+USE="-nls" emerge -1av =gcc-4.4.7
+emerge -1av portage
+
+# Now remove temporary symlink
+rm /bin/make
+# It's not yet possible to build FreeBSD kernel since BSD userland is only partially available yet
+USE="-build-kernel" emerge -1av freebsd-sources
+
+emerge -1av freebsd-bin
+# build only 32bit freebsd-ubin
+USE="build-step2" emerge -1av freebsd-ubin --nodeps
+USE="build-step2" emerge -1av freebsd-usbin
+emerge -1av freebsd-lib --nodeps
+USE="build-step2" emerge -1av freebsd-ubin --nodeps
+reemerge sys-freebsd/* except for freebsd-usbin and freebsd-sources
+reemerge libpcap
+reemerge sys-freebsd/freebsd-usbin
+rm /usr/local/bin/*
+USE="-cxx" emerge -1av =gcc-4.2*
+emerge -1av python:2.7 python:3.4
+# Remove PYTHON_TARGETS and USE="-cxx" from make.conf
+emerge -1av portage
+
+# We don't have working c++ compiler yet and probably can't build kernel yet, but everything else may be updated to proper use-flags
+# Exclude groff since it requires c++ compiler
+# Rebuilding everything is probably not needed, but I did it anyway. And it's also needed to stop using lib64 directories
+USE="-cxx -build-kernel" emerge -avuDN system--exclude groff
+USE="-cxx -build-kernel" emerge -ave system world --exclude groff
+# System has compiler gcc-4.4.x, target is gcc-4.9.4, but it requires c++ compiler to build, and we don't have it yet.
+# I could increase gcc versions only one after another. After every emerge switch to new compiler.
+USE="-cxx" emerge -1av =gcc-4.4*
+USE="-cxx" emerge -1av =gcc-4.5*
+USE="-cxx" emerge -1av =gcc-4.6*
+# After this point I was able to make c++ compiler and update groff and world
+emerge -1av =gcc-4.6*
+emerge -1av groff
+USE="-build-kernel" emerge -avuDN system world
+# And finally build kernel
+emerge -avuDN system world
+
+# Since I've rebuilt world, lib64 directories are no longer needed, remove the symlinks if they're not removed by portage yet
+rm /lib64 /usr/lib64 /usr/local/lib64
+
+# Now emerge bootloader and other necessary packages. For me it was boot0 and dhcpcd.
+emerge boot0 dhcpcd
+# change root shell to /bin/bash or some other shell, just emerge it too. Default root shell is /bin/csh and it wasn't present for me in the resulting system.
+# Clean packages and portage tree archives if needed
+# Clean stuff in /usr/local if needed
+# install bootloader using it's instruction, exit chroot, unmount everything previously manually mounted, reboot
+
+
+
+
+III. Finishing up Gentoo/FreeBSD system
+
+# system is ready to use, but 64bit-only
+# Emerge gcc-4.9.4, make sure to use it from this overlay to make patched toolchain.eclass effective, and make sure from this overlay is applied too.
+# If all conditions are true, resulting compiler would be able to build both 32bit and 64bit executables and libraries, including c++,
+# otherwise it'd be able to produce everything 64bit and for 32bit it'd be limited to producing only C libraries and executables with some further restrictions,
+# But you'd be able to build clang which would be able to make both 32bit and 64bit C executables and libraries, and 64bit for C++ only too.
+emerge -1av =gcc-4.9.4
+
+# If conditions above are true, you may add ABI_X86="64 32" to make.conf or specific packages if necessary
+
+# Optonally: mask llvm, clang and components 4.0.0 since there were compile-time issues. Maybe they're already fixed or would be fixed later, for now I used 3.9.1 release.
+# Emerge clang, switch profile to 'clang' one. I also made configuration to ensure that CC="gcc" and CXX="g++" for sys-devel/gcc since it failed to build with clang for me.
+
+# Now system is fully functioning and ready for further configuration and use
+# I also rechecked and removed FEATURES="-userpriv" from make.conf since it seems to work fine now
+
+# If you have multilib setup with patched portage, and it suddenly says that C compiler can't create executables, check if /var/run/ld-elf32.so.hints exists,
+# and in case it does not, create it as empty file and run env-update

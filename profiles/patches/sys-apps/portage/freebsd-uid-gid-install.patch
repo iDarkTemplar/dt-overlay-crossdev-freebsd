@@ -1,0 +1,22 @@
+--- portage-2.3.5/bin/phase-functions.sh.back	2017-04-09 19:48:50.340186000 +0000
++++ portage-2.3.5/bin/phase-functions.sh	2017-04-09 19:54:17.910435000 +0000
+@@ -562,6 +562,19 @@
+ 	fi
+ 	rm -rf "${D}"
+ 	mkdir -p "${_x}"
++	# BSD by default inherits directory group id from parent directory
++	# It's also possible to have such behaviour on Linux by
++	# mounting with option grpid or bsdgroups on some Linux filesystems
++	# This may result in wrong group owning files with some features enabled,
++	# for example with userpriv feature it may lead to portage group owning files
++	# To fix this, explicitely set uid and gid of image root
++	_user="$(getent passwd "${PORTAGE_INST_UID}" | sed -e 's/:.*//')"
++	_group="$(getent group "${PORTAGE_INST_GID}" | sed -e 's/:.*//')"
++	if [ -n "${_user}" -o -n "${_group}" ] ; then
++		chown "${_user}":"${_group}" "${_x}"
++	fi
++	unset _user
++	unset _group
+ 	unset _x
+ 
+ 	if [[ -d $S ]] ; then

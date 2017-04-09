@@ -1,0 +1,11 @@
+--- work/lib/Makefile.back	2017-04-04 12:06:13.000000000 +0300
++++ work/lib/Makefile	2017-04-04 12:06:06.000000000 +0300
+@@ -144,6 +144,8 @@
+ SUBDIR_DEPEND_libulog= libmd
+ SUBDIR_DEPEND_libunbound= ${_libldns}
+ SUBDIR_DEPEND_liblzma= ${_libthr}
++SUBDIR_DEPEND_libfetch = libmd
++SUBDIR_DEPEND_libmt = libsbuf
+ 
+ # NB: keep these sorted by MK_* knobs
+ 

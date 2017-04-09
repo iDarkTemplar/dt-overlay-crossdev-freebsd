@@ -1,0 +1,87 @@
+--- gcc-4.9.4/gcc/config.gcc.back	2017-04-07 22:42:58.742291323 +0300
++++ gcc-4.9.4/gcc/config.gcc	2017-04-07 23:46:43.442041457 +0300
+@@ -181,7 +181,7 @@
+ #			the --with-sysroot configure option or the
+ #			--sysroot command line option is used this
+ #			will be relative to the sysroot.
+-# target_type_format_char 
++# target_type_format_char
+ # 			The default character to be used for formatting
+ #			the attribute in a
+ #			.type symbol_name, ${t_t_f_c}<property>
+@@ -1362,6 +1362,30 @@
+ 	;;
+ x86_64-*-freebsd*)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h ${fbsd_tm_file} i386/x86-64.h i386/freebsd.h i386/freebsd64.h"
++	tmake_file="${tmake_file} i386/t-freebsd64"
++	x86_multilibs="${with_multilib_list}"
++	if test "$x86_multilibs" = "default"; then
++		case ${with_abi} in
++#		x32 | mx32)
++#			x86_multilibs="mx32"
++#			;;
++		*)
++			x86_multilibs="m64,m32"
++			;;
++		esac
++	fi
++	x86_multilibs=`echo $x86_multilibs | sed -e 's/,/ /g'`
++	for x86_multilib in ${x86_multilibs}; do
++		case ${x86_multilib} in
++		m32 | m64)
++			TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},${x86_multilib}"
++			;;
++		*)
++			echo "--with-multilib-list=${x86_with_multilib} not supported."
++			exit 1
++		esac
++	done
++	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+ 	;;
+ i[34567]86-*-netbsdelf*)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h netbsd.h netbsd-elf.h i386/netbsd-elf.h"
+@@ -3202,7 +3226,7 @@
+          with_cpu=8548
+       else
+          with_cpu=8540
+-      fi       
++      fi
+       ;;
+     sparc*-*-*)
+       case ${target} in
+--- /dev/null	2017-04-07 19:42:07.268957212 +0300
++++ gcc-4.9.4/gcc/config/i386/t-freebsd64	2017-04-07 23:49:30.017030575 +0300
+@@ -0,0 +1,33 @@
++# Copyright (C) 2002-2014 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++# On FreeBSD 64bit the 32bit libraries are found in /lib32 and /usr/lib32,
++# 64bit libraries are found in /lib and /usr/lib
++# Set MULTILIB_OSDIRNAMES according to what is found on the target.
++
++# To support i386 and x86-64, the directory structure
++# should be:
++#
++# 	/lib32 has i386 libraries.
++# 	/lib has x86-64 libraries.
++#
++comma=,
++MULTILIB_OPTIONS    = $(subst $(comma),/,$(TM_MULTILIB_CONFIG))
++MULTILIB_DIRNAMES   = $(patsubst m%, %, $(subst /, ,$(MULTILIB_OPTIONS)))
++MULTILIB_OSDIRNAMES = m64=../lib
++MULTILIB_OSDIRNAMES+= m32=../lib32

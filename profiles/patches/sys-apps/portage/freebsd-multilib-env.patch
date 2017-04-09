@@ -1,0 +1,49 @@
+--- portage-2.3.5/pym/portage/util/env_update.py.back	2017-04-08 15:57:42.070923000 +0000
++++ portage-2.3.5/pym/portage/util/env_update.py	2017-04-08 16:39:04.326213000 +0000
+@@ -329,11 +329,41 @@
+ 				(target_root,))
+ 			os.system("cd / ; %s -X -r '%s'" % (ldconfig, target_root))
+ 		elif ostype in ("FreeBSD", "DragonFly"):
+-			writemsg_level(_(">>> Regenerating %svar/run/ld-elf.so.hints...\n") % \
+-				target_root)
+-			os.system(("cd / ; %s -elf -i " + \
+-				"-f '%svar/run/ld-elf.so.hints' '%setc/ld.so.conf'") % \
+-				(ldconfig, target_root, target_root))
++			if ostype == "DragonFly" or not os.path.isfile(("%svar/run/ld-elf32.so.hints") % (target_root)):
++				writemsg_level(_(">>> Regenerating %svar/run/ld-elf.so.hints...\n") % \
++					target_root)
++				os.system(("cd / ; %s -elf -i " + \
++					"-f '%svar/run/ld-elf.so.hints' '%setc/ld.so.conf'") % \
++					(ldconfig, target_root, target_root))
++			else:
++				# Multilib FreeBSD setup is detected, regenerate two separate files
++				# Assume that /etc/ld.so.conf contains both 32bit and 64bit directories, but 32bit directories end with '/32' or '/lib32', or contains it as part of path
++				paths64 = []
++				paths32 = []
++				with open(("%setc/ld.so.conf") % target_root) as ld_so_conf_file:
++					ld_so_conf_content = ld_so_conf_file.readlines()
++				ld_so_conf_content = [x.strip() for x in ld_so_conf_content]
++				for line in ld_so_conf_content:
++					if line.startswith("#"):
++						continue
++					if (line.endswith("/lib32") or line.endswith("/32")
++						or "/lib32/" in line or "/32/" in line):
++						paths32.append(line)
++					else:
++						paths64.append(line)
++				# TODO: check if adding target_root is necessary here in case of prefix or similar setup
++				paths32 = ["'{0}'".format(element) for element in paths32]
++				paths64 = ["'{0}'".format(element) for element in paths64]
++				writemsg_level(_(">>> Regenerating %svar/run/ld-elf.so.hints...\n") % \
++					target_root)
++				os.system(("cd / ; %s -elf -i " + \
++					"-f '%svar/run/ld-elf.so.hints' " + \
++					" ".join(paths64)) % (ldconfig, target_root))
++				writemsg_level(_(">>> Regenerating %svar/run/ld-elf32.so.hints...\n") % \
++					target_root)
++				os.system(("cd / ; %s -elf -i " + \
++					"-f '%svar/run/ld-elf32.so.hints' " + \
++					" ".join(paths32)) % (ldconfig, target_root))
+ 
+ 	del specials["LDPATH"]
+ 
