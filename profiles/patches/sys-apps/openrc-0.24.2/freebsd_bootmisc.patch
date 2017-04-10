@@ -1,0 +1,12 @@
+--- openrc-0.24.2/init.d/bootmisc.in.back	2017-04-10 10:52:43.735382000 +0000
++++ openrc-0.24.2/init.d/bootmisc.in	2017-04-10 10:53:34.177388000 +0000
+@@ -71,7 +71,8 @@
+ 	ebegin "Cleaning /var/run"
+ 	for x in $(find /var/run ! -type d ! -name utmp \
+ 		! -name random-seed ! -name dev.db \
+-		! -name ld-elf.so.hints ! -name ld.so.hints);
++		! -name ld-elf.so.hints ! -name ld-elf32.so.hints \
++		! -name ld.so.hints);
+ 	do
+ 		# Clean stale sockets
+ 		if [ -S "$x" ]; then
