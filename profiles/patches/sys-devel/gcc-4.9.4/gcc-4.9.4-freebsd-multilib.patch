@@ -1,14 +1,5 @@
 --- gcc-4.9.4/gcc/config.gcc.back	2017-04-07 22:42:58.742291323 +0300
 +++ gcc-4.9.4/gcc/config.gcc	2017-04-07 23:46:43.442041457 +0300
-@@ -181,7 +181,7 @@
- #			the --with-sysroot configure option or the
- #			--sysroot command line option is used this
- #			will be relative to the sysroot.
--# target_type_format_char 
-+# target_type_format_char
- # 			The default character to be used for formatting
- #			the attribute in a
- #			.type symbol_name, ${t_t_f_c}<property>
 @@ -1362,6 +1362,30 @@
  	;;
  x86_64-*-freebsd*)
@@ -40,15 +31,6 @@
  	;;
  i[34567]86-*-netbsdelf*)
  	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h netbsd.h netbsd-elf.h i386/netbsd-elf.h"
-@@ -3202,7 +3226,7 @@
-          with_cpu=8548
-       else
-          with_cpu=8540
--      fi       
-+      fi
-       ;;
-     sparc*-*-*)
-       case ${target} in
 --- /dev/null	2017-04-07 19:42:07.268957212 +0300
 +++ gcc-4.9.4/gcc/config/i386/t-freebsd64	2017-04-07 23:49:30.017030575 +0300
 @@ -0,0 +1,33 @@
